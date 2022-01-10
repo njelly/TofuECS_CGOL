@@ -12,92 +12,79 @@ namespace Tofunaut.TofuECS_COGL.ECS
                 return;
             }
 
-            var boardEntity = s.CreateEntity();
-            var boardBuffer = s.Buffer<Board>();
-            var board = new Board
+            s.ModifySingletonComponent((ref Board board) =>
             {
-                Size = config.BoardSize,
-            };
-            for (var i = 0; i < config.BoardSize * config.BoardSize; i++)
-            {
-                board.State[i] = false;
-            }
-            boardBuffer.Set(boardEntity, board);
+                board.Size = config.BoardSize;
+                for (var i = 0; i < config.BoardSize * config.BoardSize; i++)
+                    board.State[i] = false;
+            });
         }
 
         public void Process(Simulation s)
         {
-            var boardIterator = s.Buffer<Board>().GetIterator();
-            
-            // this is an easy pattern to use when we only care about a single instance of a component
-            // TODO: should TofuECS just use an API for accessing singleton components?
-            if (!boardIterator.Next())
-                return;
-
-            var current = boardIterator.Current;
-            var offset = current.Size * current.Size;
-            var toFlip = stackalloc int[offset];
-            var numToFlip = 0;
-            for (var x = 0; x < current.Size; x++)
+            s.ModifySingletonComponent((ref Board board) =>
             {
-                for (var y = 0; y < current.Size; y++)
+                var offset = board.Size * board.Size;
+                var toFlip = stackalloc int[offset];
+                var numToFlip = 0;
+                for (var x = 0; x < board.Size; x++)
                 {
-                    var index = x + y * current.Size;
-                    var numAlive = 0;
-                    
-                    // top left
-                    if (current.State[(index + current.Size - 1 + offset) % offset])
-                        numAlive++;
-                    
-                    // top middle
-                    if (current.State[(index + current.Size + offset) % offset])
-                        numAlive++;
-                    
-                    // top right
-                    if (current.State[(index + current.Size + 1 + offset) % offset])
-                        numAlive++;
-                    
-                    // middle left
-                    if (current.State[(index - 1 + offset) % offset])
-                        numAlive++;
-                    
-                    // middle right
-                    if (current.State[(index + 1 + offset) % offset])
-                        numAlive++;
-                    
-                    // bottom left
-                    if (current.State[(index - current.Size - 1 + offset) % offset])
-                        numAlive++;
-                    
-                    // bottom middle
-                    if (current.State[(index - current.Size + offset) % offset])
-                        numAlive++;
-                    
-                    // bottom right
-                    if (current.State[(index - current.Size + 1 + offset) % offset])
-                        numAlive++;
-                    
-                    var isAlive = current.State[index];
-                    var doFlip = false;
-                    if (isAlive)
-                        doFlip = numAlive is < 2 or > 3;
-                    else
-                        doFlip = numAlive == 3;
+                    for (var y = 0; y < board.Size; y++)
+                    {
+                        var index = x + y * board.Size;
+                        var numAlive = 0;
 
-                    if (doFlip)
-                        toFlip[++numToFlip] = index;
+                        // top left
+                        if (board.State[(index + board.Size - 1 + offset) % offset])
+                            numAlive++;
+
+                        // top middle
+                        if (board.State[(index + board.Size + offset) % offset])
+                            numAlive++;
+
+                        // top right
+                        if (board.State[(index + board.Size + 1 + offset) % offset])
+                            numAlive++;
+
+                        // middle left
+                        if (board.State[(index - 1 + offset) % offset])
+                            numAlive++;
+
+                        // middle right
+                        if (board.State[(index + 1 + offset) % offset])
+                            numAlive++;
+
+                        // bottom left
+                        if (board.State[(index - board.Size - 1 + offset) % offset])
+                            numAlive++;
+
+                        // bottom middle
+                        if (board.State[(index - board.Size + offset) % offset])
+                            numAlive++;
+
+                        // bottom right
+                        if (board.State[(index - board.Size + 1 + offset) % offset])
+                            numAlive++;
+
+                        var isAlive = board.State[index];
+                        var doFlip = false;
+                        if (isAlive)
+                            doFlip = numAlive is < 2 or > 3;
+                        else
+                            doFlip = numAlive == 3;
+
+                        if (doFlip)
+                            toFlip[++numToFlip] = index;
+                    }
                 }
-            }
 
-            var boardStateChangedEvent = new BoardStateChangedEvent
-            {
-                XCoords = new int[numToFlip],
-                YCoords = new int[numToFlip],
-                States = new bool[numToFlip],
-            };
-            
-            boardIterator.ModifyCurrent((ref Board board) =>
-            {
+                var boardStateChangedEvent = new BoardStateChangedEvent
+                {
+                    XCoords = new int[numToFlip],
+                    YCoords = new int[numToFlip],
+                    States = new bool[numToFlip],
+                };
+
                 for (var i = 0; i < numToFlip; i++)
                 {
                     board.State[toFlip[i]] = !board.State[toFlip[i]];
@@ -105,9 +92,9 @@ namespace Tofunaut.TofuECS_COGL.ECS
                     boardStateChangedEvent.YCoords[i] = toFlip[i] / board.Size;
                     boardStateChangedEvent.States[i] = board.State[toFlip[i]];
                 }
+                
+                s.QueueExternalEvent(boardStateChangedEvent);
             });
-            
-            s.QueueExternalEvent(boardStateChangedEvent);
         }
     }
 

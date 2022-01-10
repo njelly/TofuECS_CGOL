@@ -55,18 +55,19 @@ namespace Tofunaut.TofuECS_COGL
             });
             ecsDatabase.Seal();
 
-            _simulation = new Simulation(new ECSDatabase(), new UnityLogService(), Convert.ToUInt64(_seed),
+            _simulation = new Simulation(ecsDatabase, new UnityLogService(), Convert.ToUInt64(_seed),
                 new ISystem[]
                 {
                     new BoardSystem(),
                 });
-            _simulation.RegisterComponent<Board>(1);
+            _simulation.RegisterSingletonComponent<Board>();
             _simulation.Initialize();
         }
 
         private void TickButton_OnClick()
         {
             _simulation.Tick();
+            Debug.Log("tick");
         }
 
         private void PauseButton_OnClick()
