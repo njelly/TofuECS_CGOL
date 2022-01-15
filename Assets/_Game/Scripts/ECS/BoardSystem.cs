@@ -2,7 +2,7 @@ using System;
 using Tofunaut.TofuECS;
 using Tofunaut.TofuECS.Utilities;
 
-namespace Tofunaut.TofuECS_COGL.ECS
+namespace Tofunaut.TofuECS_CGOL.ECS
 {
     public unsafe class BoardSystem : ISystem
     {
@@ -41,47 +41,49 @@ namespace Tofunaut.TofuECS_COGL.ECS
             {
                 var offset = s.Buffer<bool>().Size;
                 var width = (int)Math.Round(Math.Sqrt(offset));
+                // creates a fixed pointer on the stack that you can use as an array
                 var toFlip = stackalloc int[offset];
                 var numToFlip = 0;
                 while (i.Next())
                 {
                     var numAlive = 0;
+                    var index = i.Current;
                     
                     // NOTE: 'offset' is used here to avoid awkward values with the % operator.
 
                     // top left
-                    if (buffer[(i + width - 1 + offset) % offset])
+                    if (buffer[(index + width - 1 + offset) % offset])
                         numAlive++;
                     
                     // top center
-                    if (buffer[(i + width + offset) % offset])
+                    if (buffer[(index + width + offset) % offset])
                         numAlive++;
 
                     // top right
-                    if (buffer[(i + width + 1 + offset) % offset])
+                    if (buffer[(index + width + 1 + offset) % offset])
                         numAlive++;
 
                     // middle left
-                    if (buffer[(i - 1 + offset) % offset])
+                    if (buffer[(index - 1 + offset) % offset])
                         numAlive++;
 
                     // middle right
-                    if (buffer[(i + 1 + offset) % offset])
+                    if (buffer[(index + 1 + offset) % offset])
                         numAlive++;
 
                     // bottom left
-                    if (buffer[(i - width - 1 + offset) % offset])
+                    if (buffer[(index - width - 1 + offset) % offset])
                         numAlive++;
 
                     // bottom center
-                    if (buffer[(i - width + offset) % offset])
+                    if (buffer[(index - width + offset) % offset])
                         numAlive++;
 
                     // bottom right
-                    if (buffer[(i - width + 1 + offset) % offset])
+                    if (buffer[(index - width + 1 + offset) % offset])
                         numAlive++;
 
-                    var isAlive = buffer[i];
+                    var isAlive = buffer[index];
                     bool doFlip;
                     if (isAlive)
                         doFlip = numAlive is < 2 or > 3;
@@ -89,7 +91,7 @@ namespace Tofunaut.TofuECS_COGL.ECS
                         doFlip = numAlive is 3;
 
                     if (doFlip)
-                        toFlip[++numToFlip] = i;
+                        toFlip[++numToFlip] = index;
                 }
                 
                 var boardStateChangedEvent = new BoardStateChangedEventArgs

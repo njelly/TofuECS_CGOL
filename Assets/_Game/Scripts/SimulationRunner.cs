@@ -1,13 +1,12 @@
 using System;
 using Tofunaut.TofuECS;
-using Tofunaut.TofuECS_COGL.ECS;
+using Tofunaut.TofuECS_CGOL.ECS;
 using Tofunaut.TofuECS.Utilities;
 using UnityEngine;
 using UnityEngine.UI;
 using Color = UnityEngine.Color;
-using Random = UnityEngine.Random;
 
-namespace Tofunaut.TofuECS_COGL
+namespace Tofunaut.TofuECS_CGOL
 {
     public class SimulationRunner : MonoBehaviour
     {

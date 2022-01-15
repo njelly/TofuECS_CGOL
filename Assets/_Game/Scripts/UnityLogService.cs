@@ -1,7 +1,7 @@
 using System;
 using Tofunaut.TofuECS;
 
-namespace Tofunaut.TofuECS_COGL
+namespace Tofunaut.TofuECS_CGOL
 {
     public class UnityLogService : ILogService
     {

@@ -783,7 +783,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 777256655e7914a6cb28462e30282fae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _tickInterval: 1
+  _tickInterval: 0
   _paused: 0
   _boardSize: 600
   _seed: 12345

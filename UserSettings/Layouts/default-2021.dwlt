@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_PixelRect:
     serializedVersion: 2
-    x: 271
-    y: 165
+    x: 377
+    y: 191
     width: 1186
     height: 768
   m_ShowMode: 4
-  m_Title: Console
+  m_Title: Game
   m_RootView: {fileID: 8}
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
@@ -74,7 +74,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 91
+  controlID: 120
 --- !u!114 &4
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -99,7 +99,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 200}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 15
+  controlID: 45
 --- !u!114 &5
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -273,7 +273,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 200}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 1
-  controlID: 16
+  controlID: 46
 --- !u!114 &12
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -298,7 +298,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 17
+  controlID: 47
 --- !u!114 &13
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -346,8 +346,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 271
-    y: 621
+    x: 377
+    y: 647
     width: 505
     height: 271
   m_ViewDataDictionary: {fileID: 0}
@@ -367,22 +367,22 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/_Game/Scripts
+    - Assets/_Game/Scripts/ECS
     m_Globs: []
     m_OriginalText: 
   m_ViewMode: 1
   m_StartGridSize: 16
   m_LastFolders:
-  - Assets/_Game/Scripts
+  - Assets/_Game/Scripts/ECS
   m_LastFoldersGridSize: 16
   m_LastProjectPath: /Users/nathaniel/GIT_ROOT/Tofunaut/TofuECS_COGL
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: ba5d0000
-    m_LastClickedID: 23994
-    m_ExpandedIDs: 00000000865d00008e5d0000ba5d000000ca9a3bffffff7f
+    m_SelectedIDs: ca5d0000
+    m_LastClickedID: 24010
+    m_ExpandedIDs: 00000000865d00009c5d0000c65d000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -486,8 +486,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 1177
-    y: 195
+    x: 1283
+    y: 221
     width: 279
     height: 697
   m_ViewDataDictionary: {fileID: 0}
@@ -527,8 +527,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 271
-    y: 195
+    x: 377
+    y: 221
     width: 221
     height: 405
   m_ViewDataDictionary: {fileID: 0}
@@ -584,8 +584,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 493
-    y: 195
+    x: 599
+    y: 221
     width: 682
     height: 405
   m_ViewDataDictionary: {fileID: 0}
@@ -864,9 +864,9 @@ MonoBehaviour:
     speed: 2
     m_Value: {x: 0.035677593, y: 0.01708551, z: 0.0006101105, w: -0.99921715}
   m_Size:
-    m_Target: 0.28173566
+    m_Target: 2.3905973
     speed: 2
-    m_Value: 0.28173566
+    m_Value: 2.3905973
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -911,8 +911,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 493
-    y: 195
+    x: 599
+    y: 221
     width: 682
     height: 405
   m_ViewDataDictionary: {fileID: 0}
@@ -933,7 +933,7 @@ MonoBehaviour:
   m_UseMipMap: 0
   m_VSyncEnabled: 0
   m_Gizmos: 0
-  m_Stats: 0
+  m_Stats: 1
   m_SelectedSizes: 00000000000000000000000000000000000000000000000000000000000000000000000000000000
   m_ZoomArea:
     m_HRangeLocked: 0
@@ -1003,8 +1003,8 @@ MonoBehaviour:
     m_Tooltip: 
   m_Pos:
     serializedVersion: 2
-    x: 777
-    y: 621
+    x: 883
+    y: 647
     width: 398
     height: 271
   m_ViewDataDictionary: {fileID: 0}
