@@ -7,7 +7,8 @@
     "allowUnsafeCode": true,
     "overrideReferences": true,
     "precompiledReferences": [
-        "TofuECS.dll"
+        "TofuECS.dll",
+        "TofuECS.Utilities.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],

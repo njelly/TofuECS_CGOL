@@ -1,107 +1,121 @@
+using System;
 using Tofunaut.TofuECS;
+using Tofunaut.TofuECS.Utilities;
 
 namespace Tofunaut.TofuECS_COGL.ECS
 {
     public unsafe class BoardSystem : ISystem
     {
+        public event EventHandler<BoardStateChangedEventArgs> StateChanged;
+
         public void Initialize(Simulation s)
         {
-            if (!s.DB.GetSingleton(out COGLConfig config))
+            var bufferSize = s.Buffer<bool>().Size;
+            var width = (int)Math.Round(Math.Sqrt(bufferSize));
+            var boardStateChangedEvent = new BoardStateChangedEventArgs
             {
-                s.Log.Error("no COGLConfig data registered in the DB");
-                return;
-            }
-
-            s.ModifySingletonComponent((ref Board board) =>
+                BoardWidth = width,
+                FlippedIndexes = new int[bufferSize],
+                States = new bool[bufferSize],
+            };
+            
+            s.ModifySingletonComponent((ref XorShiftRandom r) =>
             {
-                board.Size = config.BoardSize;
-                for (var i = 0; i < config.BoardSize * config.BoardSize; i++)
-                    board.State[i] = false;
+                var buffer = s.Buffer<bool>();
+                for (var i = 0; i < buffer.Size; i++)
+                {
+                    var someInt = r.NextInt32();
+                    var value = someInt > 0;
+                    boardStateChangedEvent.FlippedIndexes[i] = i;
+                    boardStateChangedEvent.States[i] = value;
+                    buffer.Set(s.CreateEntity(), value);
+                }
             });
+
+            StateChanged?.Invoke(this, boardStateChangedEvent);
         }
 
         public void Process(Simulation s)
         {
-            s.ModifySingletonComponent((ref Board board) =>
+            s.Buffer<bool>().ModifyUnsafe((i, buffer) =>
             {
-                var offset = board.Size * board.Size;
+                var offset = s.Buffer<bool>().Size;
+                var width = (int)Math.Round(Math.Sqrt(offset));
                 var toFlip = stackalloc int[offset];
                 var numToFlip = 0;
-                for (var x = 0; x < board.Size; x++)
+                while (i.Next())
                 {
-                    for (var y = 0; y < board.Size; y++)
-                    {
-                        var index = x + y * board.Size;
-                        var numAlive = 0;
+                    var numAlive = 0;
+                    
+                    // NOTE: 'offset' is used here to avoid awkward values with the % operator.
 
-                        // top left
-                        if (board.State[(index + board.Size - 1 + offset) % offset])
-                            numAlive++;
+                    // top left
+                    if (buffer[(i + width - 1 + offset) % offset])
+                        numAlive++;
+                    
+                    // top center
+                    if (buffer[(i + width + offset) % offset])
+                        numAlive++;
 
-                        // top middle
-                        if (board.State[(index + board.Size + offset) % offset])
-                            numAlive++;
+                    // top right
+                    if (buffer[(i + width + 1 + offset) % offset])
+                        numAlive++;
 
-                        // top right
-                        if (board.State[(index + board.Size + 1 + offset) % offset])
-                            numAlive++;
+                    // middle left
+                    if (buffer[(i - 1 + offset) % offset])
+                        numAlive++;
 
-                        // middle left
-                        if (board.State[(index - 1 + offset) % offset])
-                            numAlive++;
+                    // middle right
+                    if (buffer[(i + 1 + offset) % offset])
+                        numAlive++;
 
-                        // middle right
-                        if (board.State[(index + 1 + offset) % offset])
-                            numAlive++;
+                    // bottom left
+                    if (buffer[(i - width - 1 + offset) % offset])
+                        numAlive++;
 
-                        // bottom left
-                        if (board.State[(index - board.Size - 1 + offset) % offset])
-                            numAlive++;
+                    // bottom center
+                    if (buffer[(i - width + offset) % offset])
+                        numAlive++;
 
-                        // bottom middle
-                        if (board.State[(index - board.Size + offset) % offset])
-                            numAlive++;
+                    // bottom right
+                    if (buffer[(i - width + 1 + offset) % offset])
+                        numAlive++;
 
-                        // bottom right
-                        if (board.State[(index - board.Size + 1 + offset) % offset])
-                            numAlive++;
+                    var isAlive = buffer[i];
+                    bool doFlip;
+                    if (isAlive)
+                        doFlip = numAlive is < 2 or > 3;
+                    else
+                        doFlip = numAlive is 3;
 
-                        var isAlive = board.State[index];
-                        var doFlip = false;
-                        if (isAlive)
-                            doFlip = numAlive is < 2 or > 3;
-                        else
-                            doFlip = numAlive == 3;
-
-                        if (doFlip)
-                            toFlip[++numToFlip] = index;
-                    }
-                }
-
-                var boardStateChangedEvent = new BoardStateChangedEvent
-                {
-                    XCoords = new int[numToFlip],
-                    YCoords = new int[numToFlip],
-                    States = new bool[numToFlip],
-                };
-
-                for (var i = 0; i < numToFlip; i++)
-                {
-                    board.State[toFlip[i]] = !board.State[toFlip[i]];
-                    boardStateChangedEvent.XCoords[i] = toFlip[i] % board.Size;
-                    boardStateChangedEvent.YCoords[i] = toFlip[i] / board.Size;
-                    boardStateChangedEvent.States[i] = board.State[toFlip[i]];
+                    if (doFlip)
+                        toFlip[++numToFlip] = i;
                 }
                 
-                s.QueueExternalEvent(boardStateChangedEvent);
+                var boardStateChangedEvent = new BoardStateChangedEventArgs
+                {
+                    BoardWidth = width,
+                    FlippedIndexes = new int[numToFlip],
+                    States = new bool[numToFlip],
+                };
+                
+                for (var j = 0; j < numToFlip; j++)
+                {
+                    var flippedIndex = toFlip[j];
+                    buffer[flippedIndex] = !buffer[flippedIndex];
+                    boardStateChangedEvent.FlippedIndexes[j] = toFlip[j];
+                    boardStateChangedEvent.States[j] = buffer[flippedIndex];
+                }
+                
+                StateChanged?.Invoke(this, boardStateChangedEvent);
             });
         }
     }
 
-    public struct BoardStateChangedEvent
+    public class BoardStateChangedEventArgs : EventArgs
     {
-        public int[] XCoords;
-        public int[] YCoords;
+        public int BoardWidth;
+        public int[] FlippedIndexes;
         public bool[] States;
     }
 }
