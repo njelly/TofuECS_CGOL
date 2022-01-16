@@ -20,6 +20,7 @@ namespace Tofunaut.TofuECS_CGOL
         [Header("UI")]
         [SerializeField] private Button _tickButton;
         [SerializeField] private Button _pauseButton;
+        [SerializeField] private Button _randomizeButton;
         [SerializeField] private Text _pauseButtonLabel;
         [SerializeField] private Text _currentTickLabel;
         
@@ -54,17 +55,19 @@ namespace Tofunaut.TofuECS_CGOL
             
             _pauseButton.onClick.RemoveAllListeners();
             _pauseButton.onClick.AddListener(PauseButton_OnClick);
+            
+            _randomizeButton.onClick.RemoveAllListeners();
+            _randomizeButton.onClick.AddListener(RandomizeButton_OnClick);
 #endregion
             
-            // create a system and subscribe to an event so that we can respond to state changes
-            var boardSystem = new BoardSystem();
-            boardSystem.StateChanged += BoardSystem_StateChanged;
+            // subscribe to an event so that we can respond to state changes
+            BoardSystem.StateChanged += BoardSystem_StateChanged;
 
             // create our simulation 
             _simulation = new Simulation(new UnityLogService(),
                 new ISystem[]
                 {
-                    boardSystem
+                    new BoardSystem()
                 });
 
             // register a fast RNG component (TofuECS.Utilities) as a singleton component
@@ -104,6 +107,18 @@ namespace Tofunaut.TofuECS_CGOL
             
             _tickTimer = 0f;
             _simulation.Tick();
+        }
+
+        private void RandomizeButton_OnClick()
+        {
+            var newValues = new bool[_boardSize * _boardSize];
+            for (var i = 0; i < newValues.Length; i++)
+                newValues[i] = UnityEngine.Random.value > 0.5f;
+            
+            _simulation.SystemEvent(new SetBoardStateInput
+            {
+                NewValues = newValues,
+            });
         }
 
         private void BoardSystem_StateChanged(object sender, BoardStateChangedEventArgs e)

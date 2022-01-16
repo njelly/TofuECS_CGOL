@@ -1,12 +1,13 @@
 using System;
+using System.Runtime.InteropServices;
 using Tofunaut.TofuECS;
 using Tofunaut.TofuECS.Utilities;
 
 namespace Tofunaut.TofuECS_CGOL.ECS
 {
-    public unsafe class BoardSystem : ISystem
+    public class BoardSystem : ISystem, ISystemEventListener<SetBoardStateInput>
     {
-        public event EventHandler<BoardStateChangedEventArgs> StateChanged;
+        public static event EventHandler<BoardStateChangedEventArgs> StateChanged;
 
         public void Initialize(Simulation s)
         {
@@ -35,7 +36,7 @@ namespace Tofunaut.TofuECS_CGOL.ECS
             StateChanged?.Invoke(this, boardStateChangedEvent);
         }
 
-        public void Process(Simulation s)
+        public unsafe void Process(Simulation s)
         {
             s.Buffer<bool>().ModifyUnsafe((i, buffer) =>
             {
@@ -108,6 +109,31 @@ namespace Tofunaut.TofuECS_CGOL.ECS
                     boardStateChangedEvent.FlippedIndexes[j] = toFlip[j];
                     boardStateChangedEvent.States[j] = buffer[flippedIndex];
                 }
+                
+                StateChanged?.Invoke(this, boardStateChangedEvent);
+            });
+        }
+
+        public unsafe void OnSystemEvent(Simulation s, in SetBoardStateInput eventData)
+        {
+            var newValues = eventData.NewValues;
+            s.Buffer<bool>().ModifyUnsafe((i, buffer) =>
+            {
+                fixed (bool* newValuesPtr = newValues)
+                {
+                    var size = sizeof(bool) * newValues.Length;
+                    Buffer.MemoryCopy(newValuesPtr, buffer, size, size);
+                }
+                
+                var boardStateChangedEvent = new BoardStateChangedEventArgs
+                {
+                    BoardWidth = (int)Math.Round(Math.Sqrt(s.Buffer<bool>().Size)),
+                    FlippedIndexes = new int[newValues.Length],
+                    States = newValues,
+                };
+
+                for (var j = 0; j < newValues.Length; j++)
+                    boardStateChangedEvent.FlippedIndexes[j] = j;
                 
                 StateChanged?.Invoke(this, boardStateChangedEvent);
             });
