@@ -123,7 +123,7 @@ namespace Tofunaut.TofuECS_CGOL
 
         private void BoardSystem_StateChanged(object sender, BoardStateChangedEventArgs e)
         {
-            for (var i = 0; i < e.States.Length; i++)
+            for (var i = 0; i < e.NumToFlip; i++)
             {
                 var flippedIndex = e.FlippedIndexes[i];
                 _tex.SetPixel(flippedIndex % e.BoardWidth, flippedIndex / e.BoardWidth, e.States[i] ? Color.white : Color.black);

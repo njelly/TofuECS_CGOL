@@ -986,9 +986,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 777256655e7914a6cb28462e30282fae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _tickInterval: 0.016666668
+  _tickInterval: 0
   _paused: 0
-  _boardSize: 256
+  _boardSize: 1024
   _seed: 121212
   _tickButton: {fileID: 381240303}
   _pauseButton: {fileID: 1450356751}
