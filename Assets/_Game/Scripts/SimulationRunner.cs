@@ -3,6 +3,7 @@ using Tofunaut.TofuECS;
 using Tofunaut.TofuECS_CGOL.ECS;
 using Tofunaut.TofuECS.Utilities;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.UI;
 using Color = UnityEngine.Color;
 
@@ -88,13 +89,13 @@ namespace Tofunaut.TofuECS_CGOL
                 return;
             
             _tickTimer -= _tickInterval;
-            _simulation.Tick();
+            TickSimulationWithProfile();
         }
 
         private void TickButton_OnClick()
         {
             _tickTimer = 0f;
-            _simulation.Tick();
+            TickSimulationWithProfile();
         }
 
         private void PauseButton_OnClick()
@@ -106,7 +107,7 @@ namespace Tofunaut.TofuECS_CGOL
                 return;
             
             _tickTimer = 0f;
-            _simulation.Tick();
+            TickSimulationWithProfile();
         }
 
         private void RandomizeButton_OnClick()
@@ -123,13 +124,20 @@ namespace Tofunaut.TofuECS_CGOL
 
         private void BoardSystem_StateChanged(object sender, BoardStateChangedEventArgs e)
         {
-            for (var i = 0; i < e.States.Length; i++)
+            for (var i = 0; i < e.NumToFlip; i++)
             {
                 var flippedIndex = e.FlippedIndexes[i];
                 _tex.SetPixel(flippedIndex % e.BoardWidth, flippedIndex / e.BoardWidth, e.States[i] ? Color.white : Color.black);
             }
             
             _tex.Apply();
+        }
+
+        private void TickSimulationWithProfile()
+        {
+            Profiler.BeginSample("Simulation.Tick()");
+            _simulation.Tick();
+            Profiler.EndSample();
         }
     }
 }
