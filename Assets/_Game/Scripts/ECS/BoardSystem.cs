@@ -9,117 +9,112 @@ namespace Tofunaut.TofuECS_CGOL.ECS
     {
         public static event EventHandler<BoardStateChangedEventArgs> StateChanged;
 
-        private bool[] _boardStateCache;
-        private int[] _toFlipCache;
-        private int _width;
-        private ComponentBuffer<bool> _bufferCached;
-        private BoardStateChangedEventArgs _boardStateChangedEventArgsCached;
+        private bool[] _stateCached;
+        private int[] _flippedIndexesCached;
 
         public unsafe void Initialize(Simulation s)
         {
-            _bufferCached = s.Buffer<bool>();
-            var width = (int)Math.Round(Math.Sqrt(_bufferCached.Size));
-            var boardStateChangedEvent = new BoardStateChangedEventArgs
-            {
-                BoardWidth = width,
-                FlippedIndexes = new int[_bufferCached.Size],
-                States = new bool[_bufferCached.Size],
-            };
+            var boardData = s.GetSingletonComponent<BoardData>();
+            var buffer = s.AnonymousBuffer<bool>(s.GetSingletonComponent<BoardData>().BufferIndex);
+            _stateCached = new bool[buffer.Size];
+            _flippedIndexesCached = new int[buffer.Size];
 
             var r = s.GetSingletonComponentUnsafe<XorShiftRandom>();
-            for (var i = 0; i < _bufferCached.Size; i++)
+            var i = 0;
+            while (buffer.NextUnsafe(ref i, out var value))
+                *value = r->NextInt16() > 0;
+            
+            buffer.GetState(_stateCached);
+
+            StateChanged?.Invoke(this, new BoardStateChangedEventArgs
             {
-                var value =  r->NextInt32() > 0;
-                boardStateChangedEvent.FlippedIndexes[i] = i;
-                boardStateChangedEvent.States[i] = value;
-                _bufferCached.Set(s.CreateEntity(), value);
-            }
-
-            _boardStateCache = new bool[_bufferCached.Size];
-            _toFlipCache = new int[_bufferCached.Size];
-            _width = (int)Math.Round(Math.Sqrt(_bufferCached.Size));
-
-            _boardStateChangedEventArgsCached = new BoardStateChangedEventArgs
-            {
-                BoardWidth = _width,
-                FlippedIndexes = _toFlipCache,
-                States = _boardStateCache,
-            };
-
-            StateChanged?.Invoke(this, boardStateChangedEvent);
+                States = _stateCached,
+                FlippedIndexes = _flippedIndexesCached,
+                BoardSize = boardData.BoardSize,
+                NumToFlip = buffer.Size,
+            });
         }
 
         public unsafe void Process(Simulation s)
         {
-            _bufferCached.GetState(_boardStateCache);
-            _boardStateChangedEventArgsCached.NumToFlip = 0;
-            for (var i = 0; i < _boardStateCache.Length; i++)
+            var boardData = s.GetSingletonComponent<BoardData>();
+            var buffer = s.AnonymousBuffer<bool>(boardData.BufferIndex);
+            var bufferSize = buffer.Size;
+            buffer.GetState(_stateCached);
+            var numToFlip = 0;
+            for(var i = 0; i < _stateCached.Length; i++)
             {
                 var numAlive = 0;
                 
                 // NOTE: 'offset' is used here to avoid negative values with the % operator
 
                 // top left
-                if (_boardStateCache[(i + _width - 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i + boardData.BoardSize - 1 + bufferSize) % bufferSize])
                     numAlive++;
                     
                 // top center
-                if (_boardStateCache[(i + _width + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i + boardData.BoardSize + bufferSize) % bufferSize])
                     numAlive++;
 
                 // top right
-                if (_boardStateCache[(i + _width + 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i + boardData.BoardSize + 1 + bufferSize) % bufferSize])
                     numAlive++;
 
                 // middle left
-                if (_boardStateCache[(i - 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i - 1 + bufferSize) % bufferSize])
                     numAlive++;
 
                 // middle right
-                if (_boardStateCache[(i + 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i + 1 + bufferSize) % bufferSize])
                     numAlive++;
 
                 // bottom left
-                if (_boardStateCache[(i - _width - 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i - boardData.BoardSize - 1 + bufferSize) % bufferSize])
                     numAlive++;
 
                 // bottom center
-                if (_boardStateCache[(i - _width + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i - boardData.BoardSize + bufferSize) % bufferSize])
                     numAlive++;
 
                 // bottom right
-                if (_boardStateCache[(i - _width + 1 + _boardStateCache.Length) % _boardStateCache.Length])
+                if (_stateCached[(i - boardData.BoardSize + 1 + bufferSize) % bufferSize])
                     numAlive++;
 
                 bool doFlip;
-                if (_boardStateCache[i])
+                if (_stateCached[i])
                     doFlip = numAlive is < 2 or > 3;
                 else
                     doFlip = numAlive is 3;
 
                 if (doFlip)
-                    _toFlipCache[++_boardStateChangedEventArgsCached.NumToFlip] = i;
+                    _flippedIndexesCached[++numToFlip] = i;
             }
+
+            for (var j = 0; j < numToFlip; j++)
+                _stateCached[_flippedIndexesCached[j]] = !_stateCached[_flippedIndexesCached[j]];
+            
+            buffer.SetState(_stateCached);
                 
-            for (var j = 0; j < _boardStateChangedEventArgsCached.NumToFlip; j++)
+            StateChanged?.Invoke(this, new BoardStateChangedEventArgs
             {
-                var cellValue = _bufferCached.GetAtUnsafe(_toFlipCache[j]);
-                *cellValue = !*cellValue;
-            }
-                
-            StateChanged?.Invoke(this, _boardStateChangedEventArgsCached);
+                BoardSize = boardData.BoardSize,
+                FlippedIndexes = _flippedIndexesCached,
+                NumToFlip = numToFlip,
+                States = _stateCached,
+            });
         }
 
         public unsafe void OnSystemEvent(Simulation s, in SetBoardStateInput eventData)
         {
+            var boardData = s.GetSingletonComponent<BoardData>();
+            var buffer = s.AnonymousBuffer<bool>(boardData.BufferIndex);
             var boardStateChangedEvent = new BoardStateChangedEventArgs
             {
-                BoardWidth = (int)Math.Round(Math.Sqrt(s.Buffer<bool>().Size)),
+                BoardSize = boardData.BoardSize,
                 FlippedIndexes = new int[eventData.NewValues.Length],
                 States = eventData.NewValues,
             };
 
-            var buffer = s.Buffer<bool>();
             for (var i = 0; i < eventData.NewValues.Length; i++)
             {
                 boardStateChangedEvent.FlippedIndexes[i] = i;
@@ -132,7 +127,7 @@ namespace Tofunaut.TofuECS_CGOL.ECS
 
     public class BoardStateChangedEventArgs : EventArgs
     {
-        public int BoardWidth;
+        public int BoardSize;
         public int[] FlippedIndexes;
         public bool[] States;
         public int NumToFlip;

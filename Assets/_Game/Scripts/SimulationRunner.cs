@@ -73,7 +73,12 @@ namespace Tofunaut.TofuECS_CGOL
 
             // register a fast RNG component (TofuECS.Utilities) as a singleton component
             _simulation.RegisterSingletonComponent(new XorShiftRandom(Convert.ToUInt64(_seed)));
-            _simulation.RegisterComponent<bool>(_boardSize * _boardSize);
+            var index = _simulation.RegisterAnonymousComponent<bool>(_boardSize * _boardSize);
+            _simulation.RegisterSingletonComponent(new BoardData
+            {
+                BufferIndex = index,
+                BoardSize = _boardSize,
+            });
             _simulation.Initialize();
         }
 
@@ -127,7 +132,7 @@ namespace Tofunaut.TofuECS_CGOL
             for (var i = 0; i < e.NumToFlip; i++)
             {
                 var flippedIndex = e.FlippedIndexes[i];
-                _tex.SetPixel(flippedIndex % e.BoardWidth, flippedIndex / e.BoardWidth, e.States[i] ? Color.white : Color.black);
+                _tex.SetPixel(flippedIndex % e.BoardSize, flippedIndex / e.BoardSize, e.States[i] ? Color.white : Color.black);
             }
             
             _tex.Apply();
