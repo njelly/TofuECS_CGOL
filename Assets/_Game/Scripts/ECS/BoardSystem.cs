@@ -1,38 +1,24 @@
 using System;
-using System.Runtime.InteropServices;
 using Tofunaut.TofuECS;
 using Tofunaut.TofuECS.Utilities;
 
 namespace Tofunaut.TofuECS_CGOL.ECS
 {
-    public class BoardSystem : ISystem, ISystemEventListener<SetBoardStateInput>
+    public class BoardSystem : ISystem, ISystemEventListener<SetBoardStateInput>, ISystemEventListener<SetStaticProbabilityInput>
     {
-        public static event EventHandler<BoardStateChangedEventArgs> StateChanged;
+        public static event Action<BoardStateChangedEventData> StateChanged;
 
         private bool[] _stateCached;
         private int[] _flippedIndexesCached;
 
-        public unsafe void Initialize(Simulation s)
+        public void Initialize(Simulation s)
         {
             var boardData = s.GetSingletonComponent<BoardData>();
-            var buffer = s.AnonymousBuffer<bool>(s.GetSingletonComponent<BoardData>().BufferIndex);
+            var buffer = s.AnonymousBuffer<bool>(boardData.BufferIndex);
             _stateCached = new bool[buffer.Size];
             _flippedIndexesCached = new int[buffer.Size];
-
-            var r = s.GetSingletonComponentUnsafe<XorShiftRandom>();
-            var i = 0;
-            while (buffer.NextUnsafe(ref i, out var value))
-                *value = r->NextInt16() > 0;
             
             buffer.GetState(_stateCached);
-
-            StateChanged?.Invoke(this, new BoardStateChangedEventArgs
-            {
-                States = _stateCached,
-                FlippedIndexes = _flippedIndexesCached,
-                BoardSize = boardData.BoardSize,
-                NumToFlip = buffer.Size,
-            });
         }
 
         public unsafe void Process(Simulation s)
@@ -46,7 +32,7 @@ namespace Tofunaut.TofuECS_CGOL.ECS
             {
                 var numAlive = 0;
                 
-                // NOTE: 'offset' is used here to avoid negative values with the % operator
+                // NOTE: 'bufferSize' is used here to avoid negative values with the % operator
 
                 // top left
                 if (_stateCached[(i + boardData.BoardSize - 1 + bufferSize) % bufferSize])
@@ -86,16 +72,23 @@ namespace Tofunaut.TofuECS_CGOL.ECS
                 else
                     doFlip = numAlive is 3;
 
+                // random static
+                //if (!doFlip)
+                //{
+                    var randomDecimal = s.GetSingletonComponentUnsafe<XorShiftRandom>()->NextDouble();
+                    doFlip |= boardData.StaticProbability > randomDecimal;
+                //}
+
                 if (doFlip)
-                    _flippedIndexesCached[++numToFlip] = i;
+                    _flippedIndexesCached[numToFlip++] = i;
             }
 
-            for (var j = 0; j < numToFlip; j++)
-                _stateCached[_flippedIndexesCached[j]] = !_stateCached[_flippedIndexesCached[j]];
+            for (var i = 0; i < numToFlip; i++)
+                _stateCached[_flippedIndexesCached[i]] = !_stateCached[_flippedIndexesCached[i]];
             
             buffer.SetState(_stateCached);
                 
-            StateChanged?.Invoke(this, new BoardStateChangedEventArgs
+            StateChanged?.Invoke(new BoardStateChangedEventData
             {
                 BoardSize = boardData.BoardSize,
                 FlippedIndexes = _flippedIndexesCached,
@@ -104,28 +97,33 @@ namespace Tofunaut.TofuECS_CGOL.ECS
             });
         }
 
-        public unsafe void OnSystemEvent(Simulation s, in SetBoardStateInput eventData)
+        public void OnSystemEvent(Simulation s, in SetBoardStateInput eventData)
         {
             var boardData = s.GetSingletonComponent<BoardData>();
             var buffer = s.AnonymousBuffer<bool>(boardData.BufferIndex);
-            var boardStateChangedEvent = new BoardStateChangedEventArgs
+            var boardStateChangedEvent = new BoardStateChangedEventData
             {
                 BoardSize = boardData.BoardSize,
                 FlippedIndexes = new int[eventData.NewValues.Length],
                 States = eventData.NewValues,
+                NumToFlip = eventData.NewValues.Length,
             };
 
-            for (var i = 0; i < eventData.NewValues.Length; i++)
-            {
+            for (var i = 0; i < boardStateChangedEvent.FlippedIndexes.Length; i++)
                 boardStateChangedEvent.FlippedIndexes[i] = i;
-                *buffer.GetAtUnsafe(i) = eventData.NewValues[i];
-            }
             
-            StateChanged?.Invoke(this, boardStateChangedEvent);
+            buffer.SetState(eventData.NewValues);
+            
+            StateChanged?.Invoke(boardStateChangedEvent);
+        }
+
+        public unsafe void OnSystemEvent(Simulation s, in SetStaticProbabilityInput eventData)
+        {
+            s.GetSingletonComponentUnsafe<BoardData>()->StaticProbability = eventData.StaticProbability;
         }
     }
 
-    public class BoardStateChangedEventArgs : EventArgs
+    public class BoardStateChangedEventData
     {
         public int BoardSize;
         public int[] FlippedIndexes;

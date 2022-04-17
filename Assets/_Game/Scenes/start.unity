@@ -141,7 +141,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &13265337
 RectTransform:
   m_ObjectHideFlags: 0
@@ -684,7 +684,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 2.5
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -988,8 +988,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _tickInterval: 0
   _paused: 0
-  _boardSize: 512
+  _boardSize: 350
   _seed: 1234
+  _randomStatic: 0.00258
   _tickButton: {fileID: 381240303}
   _pauseButton: {fileID: 1450356751}
   _randomizeButton: {fileID: 13265338}

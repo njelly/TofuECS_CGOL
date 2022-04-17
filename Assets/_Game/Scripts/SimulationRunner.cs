@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.UI;
 using Color = UnityEngine.Color;
+using Random = System.Random;
 
 namespace Tofunaut.TofuECS_CGOL
 {
@@ -17,6 +18,8 @@ namespace Tofunaut.TofuECS_CGOL
         [Header("Simulation Config")]
         [SerializeField, Range(2, 1024)] private int _boardSize;
         [SerializeField] private int _seed;
+        //[SerializeField, Range(0f, 0.1f)] private float _perlinScale;
+        [SerializeField, Range(0f, 0.01f)] private float _randomStatic;
 
         [Header("UI")]
         [SerializeField] private Button _tickButton;
@@ -28,6 +31,7 @@ namespace Tofunaut.TofuECS_CGOL
         private Simulation _simulation;
         private Texture2D _tex;
         private float _tickTimer;
+        private float _prevRandomStatic;
 
         private void Start()
         {
@@ -78,12 +82,25 @@ namespace Tofunaut.TofuECS_CGOL
             {
                 BufferIndex = index,
                 BoardSize = _boardSize,
+                StaticProbability = Convert.ToDouble(_randomStatic),
             });
             _simulation.Initialize();
+            
+            // randomize!
+            RandomizeButton_OnClick();
         }
 
         private void Update()
         {
+            if (Math.Abs(_prevRandomStatic - _randomStatic) > float.Epsilon)
+            {
+                _prevRandomStatic = _randomStatic;
+                _simulation.SystemEvent(new SetStaticProbabilityInput
+                {
+                    StaticProbability = Convert.ToDouble(_randomStatic),
+                });
+            }
+            
             _currentTickLabel.text = $"Tick: {_simulation.CurrentTick}";
 
             if (_paused) 
@@ -117,22 +134,34 @@ namespace Tofunaut.TofuECS_CGOL
 
         private void RandomizeButton_OnClick()
         {
-            var newValues = new bool[_boardSize * _boardSize];
-            for (var i = 0; i < newValues.Length; i++)
-                newValues[i] = UnityEngine.Random.value > 0.5f;
-            
-            _simulation.SystemEvent(new SetBoardStateInput
-            {
-                NewValues = newValues,
-            });
+            //UnityEngine.Random.InitState(_seed);
+            //
+            //var newValues = new bool[_boardSize * _boardSize];
+            //if (_perlinScale % 1f == 0f)
+            //    _perlinScale += 0.001f;
+            //
+            //for (var i = 0; i < newValues.Length; i++)
+            //{
+            //    var x = i % _boardSize;
+            //    var y = i / _boardSize;
+            //    newValues[i] = Mathf.PerlinNoise(x * _perlinScale, y * _perlinScale) * UnityEngine.Random.value > 0.5f;
+            //}
+            //
+            //_simulation.SystemEvent(new SetBoardStateInput
+            //{
+            //    NewValues = newValues,
+            //});
         }
 
-        private void BoardSystem_StateChanged(object sender, BoardStateChangedEventArgs e)
+        private void BoardSystem_StateChanged(BoardStateChangedEventData e)
         {
             for (var i = 0; i < e.NumToFlip; i++)
             {
                 var flippedIndex = e.FlippedIndexes[i];
-                _tex.SetPixel(flippedIndex % e.BoardSize, flippedIndex / e.BoardSize, e.States[i] ? Color.white : Color.black);
+                var x = flippedIndex % e.BoardSize;
+                var y = flippedIndex / e.BoardSize;
+                var color = e.States[flippedIndex] ? Color.white : Color.black;
+                _tex.SetPixel(x, y, color);
             }
             
             _tex.Apply();

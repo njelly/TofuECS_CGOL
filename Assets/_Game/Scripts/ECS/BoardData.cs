@@ -4,5 +4,6 @@
     {
         public int BufferIndex;
         public int BoardSize;
+        public double StaticProbability;
     }
 }
