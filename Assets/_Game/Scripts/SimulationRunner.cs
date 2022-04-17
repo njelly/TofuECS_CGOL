@@ -27,11 +27,14 @@ namespace Tofunaut.TofuECS_CGOL
         [SerializeField] private Button _randomizeButton;
         [SerializeField] private Text _pauseButtonLabel;
         [SerializeField] private Text _currentTickLabel;
+        [SerializeField] private Text _fpsLabel;
         
         private Simulation _simulation;
         private Texture2D _tex;
         private float _tickTimer;
         private float _prevRandomStatic;
+        private float _fpsTimer;
+        private int _fpsCounter;
 
         private void Start()
         {
@@ -92,6 +95,14 @@ namespace Tofunaut.TofuECS_CGOL
 
         private void Update()
         {
+            UpdateRandomStaticValue();
+            UpdateCurrentTickLabel();
+            UpdateCheckIfReadyToTick();
+            UpdateFPSLabel();
+        }
+
+        private void UpdateRandomStaticValue()
+        {
             if (Math.Abs(_prevRandomStatic - _randomStatic) > float.Epsilon)
             {
                 _prevRandomStatic = _randomStatic;
@@ -100,9 +111,15 @@ namespace Tofunaut.TofuECS_CGOL
                     StaticProbability = Convert.ToDouble(_randomStatic),
                 });
             }
-            
-            _currentTickLabel.text = $"Tick: {_simulation.CurrentTick}";
+        }
 
+        private void UpdateCurrentTickLabel()
+        {
+            _currentTickLabel.text = $"Tick: {_simulation.CurrentTick}";
+        }
+
+        private void UpdateCheckIfReadyToTick()
+        {
             if (_paused) 
                 return;
             
@@ -112,6 +129,19 @@ namespace Tofunaut.TofuECS_CGOL
             
             _tickTimer -= _tickInterval;
             TickSimulationWithProfile();
+        }
+
+        private void UpdateFPSLabel()
+        {
+            _fpsCounter++;
+            _fpsTimer += Time.deltaTime;
+
+            if (_fpsTimer < 1f)
+                return;
+
+            _fpsLabel.text = $"FPS: {_fpsCounter}";
+            _fpsTimer -= 1f;
+            _fpsCounter = 0;
         }
 
         private void TickButton_OnClick()
